@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>巧克力制作3D之旅</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            color: #4B2C20;
+            background: linear-gradient(135deg, #1a0f0b 0%, #2d1b12 100%);
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3 {
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 700;
+        }
+        
+        #scene-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        
+        .sidebar {
+            position: fixed;
+            right: -370px;
+            top: 0;
+            height: 100vh;
+            width: 420px;
+            background: rgba(43, 27, 16, 0.85);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(139, 69, 19, 0.3);
+            padding: 30px 25px;
+            z-index: 10;
+            transition: right 0.5s ease;
+            overflow-y: auto;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+        }
+        
+        .sidebar:hover {
+            right: 0;
+        }
+        
+        .sidebar-handle {
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 100px;
+            background: rgba(107, 66, 38, 0.9);
+            border-radius: 10px 0 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #E8C4A1;
+            font-size: 24px;
+            transition: background 0.3s ease;
+        }
+        
+        .sidebar-handle:hover {
+            background: rgba(139, 69, 19, 0.95);
+        }
+        
+        .content-section {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 0 15%;
+            z-index: 2;
+        }
+        
+        .content-card {
+            background: rgba(235, 219, 201, 0.92);
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(160, 120, 80, 0.3);
+            transform: translateY(50px);
+            opacity: 0;
+            transition: transform 0.8s ease, opacity 0.8s ease;
+        }
+        
+        .content-card.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .step-indicator {
+            position: fixed;
+            left: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .step {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(235, 219, 201, 0.3);
+            border: 2px solid #D2A679;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .step.active {
+            background: #D2A679;
+            transform: scale(1.4);
+        }
+        
+        .step:hover {
+            transform: scale(1.3);
+            background: #E8C4A1;
+        }
+        
+        .step-label {
+            position: absolute;
+            left: 35px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #E8C4A1;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .step:hover .step-label {
+            opacity: 1;
+        }
+        
+        .info-label {
+            position: absolute;
+            background: rgba(75, 44, 32, 0.9);
+            color: #E8C4A1;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 5;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            border: 1px solid #8B4513;
+            max-width: 200px;
+            text-align: center;
+        }
+        
+        .floating-label {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(75, 44, 32, 0.85);
+            color: #E8C4A1;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            z-index: 5;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+            border: 1px solid #A0765A;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .choco-btn {
+            background: linear-gradient(to bottom, #8B4513, #5D2906);
+            color: #FFEBC9;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .choco-btn:hover {
+            background: linear-gradient(to bottom, #A0522D, #6B3A1A);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        .choco-btn:active {
+            transform: translateY(0);
+        }
+        
+        .ingredient-card {
+            background: rgba(255, 248, 239, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #8B4513;
+        }
+        
+        .process-visual {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 25px 0;
+            padding: 15px;
+            background: rgba(255, 248, 239, 0.8);
+            border-radius: 10px;
+        }
+        
+        .process-icon {
+            font-size: 32px;
+            color: #8B4513;
+            flex-shrink: 0;
+            width: 60px;
+            text-align: center;
+        }
+        
+        .process-text {
+            flex-grow: 1;
+            padding: 0 20px;
+        }
+        
+        .choco-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #A0765A, transparent);
+            margin: 30px 0;
+            border: none;
+        }
+        
+        .choco-color {
+            color: #8B4513;
+        }
+        
+        .choco-bg {
+            background: rgba(160, 118, 90, 0.15);
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        @media (max-width: 1024px) {
+            .content-section {
+                padding: 0 10%;
+            }
+            .sidebar {
+                width: 340px;
+                right: -320px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .content-section {
+                padding: 0 5%;
+            }
+            .step-indicator {
+                left: 15px;
+            }
+            .sidebar {
+                width: 300px;
+                right: -280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D场景容器 -->
+    <div id="scene-container"></div>
+    
+    <!-- 侧边信息面板 -->
+    <div class="sidebar">
+        <div class="sidebar-handle">
+            <i class="fas fa-chevron-left"></i>
+        </div>
+        <h1 class="text-3xl font-bold mb-6 choco-color">巧克力制作工艺</h1>
+        
+        <div class="choco-bg mb-6">
+            <h2 class="text-xl font-semibold mb-3"><i class="fas fa-history mr-2"></i>历史起源</h2>
+            <p>巧克力起源于中美洲，玛雅人和阿兹特克人将可可豆作为货币和饮品。16世纪传入欧洲后，逐渐演变为现代巧克力形式。</p>
+        </div>
+        
+        <div class="ingredient-card">
+            <h3 class="text-lg font-semibold mb-2"><i class="fas fa-seedling mr-2"></i>主要原料</h3>
+            <ul class="list-disc pl-5 space-y-1">
+                <li>可可豆（Cacao Beans）</li>
+                <li>可可脂（Cocoa Butter）</li>
+                <li>蔗糖（Cane Sugar）</li>
+                <li>牛奶粉（用于牛奶巧克力）</li>
+                <li>香草（天然调味剂）</li>
+            </ul>
+        </div>
+        
+        <h2 class="text-2xl font-bold mt-8 mb-4 choco-color">制作流程</h2>
+        
+        <div class="process-visual">
+            <div class="process-icon"><i class="fas fa-tree"></i></div>
+            <div class="process-text">
+                <h3 class="font-semibold">1. 可可种植与收获</h3>
+                <p>可可树生长在赤道附近，成熟可可果需要手工采摘</p>
+            </div>
+        </div>
+        
+        <div class="process-visual">
+            <div class="process-icon"><i class="fas fa-cut"></i></div>
+            <div class="process-text">
+                <h3 class="font-semibold">2. 发酵与干燥</h3>
+                <p>可可豆在木箱中发酵5-7天，然后在阳光下干燥</p>
+            </div>
+        </div>
+        
+        <div class="process-visual">
+            <div class="process-icon"><i class="fas fa-fire"></i></div>
+            <div class="process-text">
+                <h3 class="font-semibold">3. 烘焙与研磨</h3>
+                <p>120-140°C下烘焙，然后研磨成可可液块</p>
+            </div>
+        </div>
+        
+        <div class="process-visual">
+            <div class="process-icon"><i class="fas fa-blender"></i></div>
+            <div class="process-text">
+                <h3 class="font-semibold">4. 精炼与调温</h3>
+                <p>48-72小时的精炼过程，使巧克力口感顺滑</p>
+            </div>
+        </div>
+        
+        <div class="process-visual">
+            <div class="process-icon"><i class="fas fa-wine-bottle"></i></div>
+            <div class="process-text">
+                <h3 class="font-semibold">5. 成型与包装</h3>
+                <p>注入模具冷却硬化，最后包装密封</p>
+            </div>
+        </div>
+        
+        <hr class="choco-divider">
+        
+        <div class="mt-6 text-center">
+            <button class="choco-btn">
+                <i class="fas fa-download"></i> 下载制作手册
+            </button>
+        </div>
+    </div>
+    
+    <!-- 步骤指示器 -->
+    <div class="step-indicator">
+        <div class="step active" data-step="0">
+            <span class="step-label">可可种植</span>
+        </div>
+        <div class="step" data-step="1">
+            <span class="step-label">发酵干燥</span>
+        </div>
+        <div class="step" data-step="2">
+            <span class="step-label">烘焙研磨</span>
+        </div>
+        <div class="step" data-step="3">
+            <span class="step-label">精炼调温</span>
+        </div>
+        <div class="step" data-step="4">
+            <span class="step-label">成型包装</span>
+        </div>
+    </div>
+    
+    <!-- 浮动提示 -->
+    <div class="floating-label">
+        <i class="fas fa-mouse-pointer"></i> 滚动页面探索巧克力制作全流程
+    </div>
+    
+    <!-- 内容区域 -->
+    <section class="content-section" id="section1">
+        <div class="content-card">
+            <h2 class="text-3xl font-bold mb-4 choco-color">可可的起源</h2>
+            <p class="mb-4">巧克力源自可可树(Theobroma cacao)的种子，这种热带常青树主要生长在赤道附近20度纬度范围内。</p>
+            <p class="mb-6">优质巧克力从种植开始，可可树需要特定的生长条件：温度保持在21-32°C之间，年降雨量1000-2500毫米，以及富含有机质的土壤。</p>
+            <div class="flex items-center">
+                <div class="w-16 h-16 rounded-full bg-amber-900 mr-4 flex items-center justify-center">
+                    <i class="fas fa-globe-americas text-amber-200 text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold">主要产地</h3>
+                    <p>科特迪瓦、加纳、印度尼西亚、尼日利亚、巴西</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="content-section" id="section2">
+        <div class="content-card">
+            <h2 class="text-3xl font-bold mb-4 choco-color">发酵的艺术</h2>
+            <p class="mb-4">发酵是巧克力风味形成的关键步骤。新鲜的可可豆被包裹在白色果肉中，放入木箱中发酵5-7天。</p>
+            
+            <div class="grid grid-cols-2 gap-4 mt-6">
+                <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <h3 class="font-semibold flex items-center"><i class="fas fa-thermometer-half mr-2"></i>温度控制</h3>
+                    <p>发酵温度需维持在45-50°C之间，促进复杂的化学反应</p>
+                </div>
+                <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <h3 class="font-semibold flex items-center"><i class="fas fa-hourglass-half mr-2"></i>时间管理</h3>
+                    <p>5-7天的发酵周期，每天需要翻动可可豆</p>
+                </div>
+            </div>
+            
+            <p class="mt-6">发酵过程中，豆子颜色从紫色变为棕色，苦味减少，产生数百种风味前体物质，为后续的烘焙奠定基础。</p>
+        </div>
+    </section>
+    
+    <section class="content-section" id="section3">
+        <div class="content-card">
+            <h2 class="text-3xl font-bold mb-4 choco-color">烘焙与研磨</h2>
+            <p class="mb-4">烘焙是巧克力制作中的关键环节，类似于咖啡豆烘焙，直接影响最终风味。</p>
+            
+            <div class="process-visual mt-6">
+                <div class="process-icon"><i class="fas fa-thermometer-three-quarters"></i></div>
+                <div class="process-text">
+                    <h3 class="font-semibold">温度曲线</h3>
+                    <p>120-140°C下烘焙30-120分钟，根据可可豆种类调整</p>
+                </div>
+            </div>
+            
+            <div class="process-visual">
+                <div class="process-icon"><i class="fas fa-wind"></i></div>
+                <div class="process-text">
+                    <h3 class="font-semibold">风味的形成</h3>
+                    <p>美拉德反应产生坚果、焦糖和烘烤风味</p>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-amber-900 text-amber-50 rounded-lg">
+                <h3 class="font-semibold flex items-center"><i class="fas fa-industry mr-2"></i>现代研磨技术</h3>
+                <p class="mt-2">现代巧克力厂使用大型研磨机，将烘焙后的可可豆研磨成细度仅15-25微米的可可液，达到丝绸般顺滑的口感。</p>
+            </div>
+        </div>
+    </section>
+    
+    <section class="content-section" id="section4">
+        <div class="content-card">
+            <h2 class="text-3xl font-bold mb-4 choco-color">精炼与调温</h2>
+            <p class="mb-4">精炼是巧克力制作中最耗时的步骤，通常持续48-72小时，使巧克力获得理想的口感和风味。</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div class="p-4 bg-amber-50 rounded-lg">
+                    <h3 class="font-semibold flex items-center text-amber-900"><i class="fas fa-cogs mr-2"></i>精炼过程</h3>
+                    <ul class="list-disc pl-5 mt-2 text-amber-800">
+                        <li>机械搅拌使可可颗粒更细</li>
+                        <li>去除挥发性酸类和不良风味</li>
+                        <li>发展数百种风味化合物</li>
+                        <li>改善流动性和质地</li>
+                    </ul>
+                </div>
+                
+                <div class="p-4 bg-amber-900 text-amber-50 rounded-lg">
+                    <h3 class="font-semibold flex items-center"><i class="fas fa-snowflake mr-2"></i>调温工艺</h3>
+                    <ul class="list-disc pl-5 mt-2">
+                        <li>精确控制温度使可可脂结晶</li>
+                        <li>形成稳定的β-V型晶体结构</li>
+                        <li>赋予巧克力光泽外观和清脆口感</li>
+                        <li>防止脂肪霜形成</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="content-section" id="section5">
+        <div class="content-card">
+            <h2 class="text-3xl font-bold mb-4 choco-color">成型与品鉴</h2>
+            <p class="mb-4">完美调温的巧克力被注入模具，在16-18°C的冷却隧道中逐渐凝固，形成最终的形状。</p>
+            
+            <div class="mt-6 flex flex-wrap gap-4">
+                <div class="flex-1 min-w-[200px] p-4 bg-amber-50 rounded-lg">
+                    <h3 class="font-semibold text-amber-900 mb-2"><i class="fas fa-eye mr-2"></i>视觉评估</h3>
+                    <p>优质巧克力应有均匀光泽，无气泡或白霜</p>
+                </div>
+                
+                <div class="flex-1 min-w-[200px] p-4 bg-amber-100 rounded-lg">
+                    <h3 class="font-semibold text-amber-900 mb-2"><i class="fas fa-ear-listen mr-2"></i>听觉测试</h3>
+                    <p>折断时应有清脆的"snap"声</p>
+                </div>
+                
+                <div class="flex-1 min-w-[200px] p-4 bg-amber-800 text-amber-50 rounded-lg">
+                    <h3 class="font-semibold mb-2"><i class="fas fa-mouth mr-2"></i>口感体验</h3>
+                    <p>入口即化，无颗粒感，风味层次丰富</p>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-amber-900 text-amber-50 rounded-lg">
+                <h3 class="font-semibold text-center"><i class="fas fa-award mr-2"></i>巧克力品鉴步骤</h3>
+                <div class="grid grid-cols-4 gap-2 mt-4 text-center">
+                    <div class="p-2 bg-amber-800 rounded">
+                        <div class="text-2xl">1</div>
+                        <div>观色</div>
+                    </div>
+                    <div class="p-2 bg-amber-800 rounded">
+                        <div class="text-2xl">2</div>
+                        <div>听声</div>
+                    </div>
+                    <div class="p-2 bg-amber-800 rounded">
+                        <div class="text-2xl">3</div>
+                        <div>闻香</div>
+                    </div>
+                    <div class="p-2 bg-amber-800 rounded">
+                        <div class="text-2xl">4</div>
+                        <div>品味</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // 初始化Three.js场景
+        let scene, camera, renderer;
+        let cocoaPods = [];
+        let chocolateBars = [];
+        let particles = [];
+        let currentStep = 0;
+        
+        function init() {
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a0f0b);
+            scene.fog = new THREE.FogExp2(0x2d1b12, 0.02);
+            
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 15;
+            camera.position.y = 3;
+            
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('scene-container').appendChild(renderer.domElement);
+            
+            // 添加光源
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffeedd, 1);
+            directionalLight.position.set(5, 10, 7);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            const backLight = new THREE.DirectionalLight(0x553311, 0.8);
+            backLight.position.set(-5, -3, -5);
+            scene.add(backLight);
+            
+            // 创建地面
+            const groundGeometry = new THREE.PlaneGeometry(100, 100, 10, 10);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x3e2723,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -3;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // 创建可可树
+            createCocoaTrees();
+            
+            // 创建可可豆荚
+            createCocoaPods();
+            
+            // 创建巧克力模型
+            createChocolateBars();
+            
+            // 创建背景粒子
+            createParticles();
+            
+            // 添加窗口大小变化监听
+            window.addEventListener('resize', onWindowResize);
+            
+            // 添加滚动监听
+            setupScrollAnimations();
+            
+            // 添加步骤指示器点击事件
+            setupStepIndicators();
+            
+            // 开始动画循环
+            animate();
+            
+            // 5秒后隐藏浮动提示
+            setTimeout(() => {
+                document.querySelector('.floating-label').style.opacity = '0';
+            }, 5000);
+        }
+        
+        function createCocoaTrees() {
+            const treeGroup = new THREE.Group();
+            
+            // 树干
+            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 5, 8);
+            const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.castShadow = true;
+            trunk.position.y = 2.5;
+            treeGroup.add(trunk);
+            
+            // 树冠
+            const canopyGeometry = new THREE.SphereGeometry(2, 8, 8);
+            const canopyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x4caf50,
+                roughness: 0.9
+            });
+            const canopy = new THREE.Mesh(canopyGeometry, canopyMaterial);
+            canopy.castShadow = true;
+            canopy.position.y = 6;
+            treeGroup.add(canopy);
+            
+            // 在场景中添加多棵树
+            const positions = [
+                { x: -8, z: -5 },
+                { x: 0, z: -10 },
+                { x: 7, z: -7 },
+                { x: -5, z: 8 },
+                { x: 6, z: 6 }
+            ];
+            
+            positions.forEach(pos => {
+                const tree = treeGroup.clone();
+                tree.position.set(pos.x, 0, pos.z);
+                scene.add(tree);
+            });
+        }
+        
+        function createCocoaPods() {
+            const podGeometry = new THREE.CapsuleGeometry(0.4, 1.2, 4, 8);
+            const podMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xd7ccc8,
+                roughness: 0.7,
+                metalness: 0.2
+            });
+            
+            for (let i = 0; i < 15; i++) {
+                const pod = new THREE.Mesh(podGeometry, podMaterial);
+                pod.position.set(
+                    (Math.random() - 0.5) * 20,
+                    Math.random() * 3,
+                    (Math.random() - 0.5) * 20
+                );
+                pod.rotation.x = Math.random() * Math.PI;
+                pod.castShadow = true;
+                scene.add(pod);
+                cocoaPods.push(pod);
+            }
+        }
+        
+        function createChocolateBars() {
+            const barGeometry = new THREE.BoxGeometry(1.5, 0.3, 0.8);
+            const barMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x5d4037,
+                roughness: 0.3,
+                metalness: 0.4
+            });
+            
+            for (let i = 0; i < 10; i++) {
+                const bar = new THREE.Mesh(barGeometry, barMaterial);
+                bar.position.set(
+                    (Math.random() - 0.5) * 15,
+                    -2.5 + Math.random() * 2,
+                    (Math.random() - 0.5) * 15
+                );
+                bar.rotation.y = Math.random() * Math.PI;
+                bar.castShadow = true;
+                scene.add(bar);
+                chocolateBars.push(bar);
+            }
+        }
+        
+        function createParticles() {
+            const particleGeometry = new THREE.BufferGeometry();
+            const particleCount = 200;
+            const posArray = new Float32Array(particleCount * 3);
+            
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                posArray[i] = (Math.random() - 0.5) * 100;
+                posArray[i+1] = (Math.random() - 0.5) * 50;
+                posArray[i+2] = (Math.random() - 0.5) * 100;
+            }
+            
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            
+            const particleMaterial = new THREE.PointsMaterial({
+                color: 0x8d6e63,
+                size: 0.2,
+                transparent: true,
+                opacity: 0.5
+            });
+            
+            const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particleSystem);
+            particles.push(particleSystem);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function setupScrollAnimations() {
+            const sections = document.querySelectorAll('.content-section');
+            const cards = document.querySelectorAll('.content-card');
+            const steps = document.querySelectorAll('.step');
+            
+            // 初始化卡片状态
+            cards.forEach((card, index) => {
+                if (index === 0) {
+                    card.classList.add('visible');
+                }
+            });
+            
+            // 设置滚动触发器
+            gsap.utils.toArray('.content-section').forEach((section, index) => {
+                ScrollTrigger.create({
+                    trigger: section,
+                    start: "top center",
+                    end: "bottom center",
+                    onEnter: () => updateScene(index),
+                    onEnterBack: () => updateScene(index)
+                });
+            });
+            
+            // 设置卡片动画
+            gsap.utils.toArray('.content-card').forEach((card, index) => {
+                ScrollTrigger.create({
+                    trigger: card,
+                    start: "top 80%",
+                    onEnter: () => card.classList.add('visible')
+                });
+            });
+        }
+        
+        function setupStepIndicators() {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach(step => {
+                step.addEventListener('click', function() {
+                    const targetStep = parseInt(this.getAttribute('data-step'));
+                    document.getElementById(`section${targetStep + 1}`).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        }
+        
+        function updateScene(stepIndex) {
+            currentStep = stepIndex;
+            
+            // 更新步骤指示器
+            document.querySelectorAll('.step').forEach((step, index) => {
+                if (index === stepIndex) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+            
+            // 根据步骤更新场景
+            switch(stepIndex) {
+                case 0: // 可可种植
+                    gsap.to(camera.position, {
+                        x: 0,
+                        y: 3,
+                        z: 15,
+                        duration: 1.5
+                    });
+                    break;
+                case 1: // 发酵干燥
+                    gsap.to(camera.position, {
+                        x: 5,
+                        y: 2,
+                        z: 10,
+                        duration: 1.5
+                    });
+                    break;
+                case 2: // 烘焙研磨
+                    gsap.to(camera.position, {
+                        x: -4,
+                        y: 1,
+                        z: 8,
+                        duration: 1.5
+                    });
+                    break;
+                case 3: // 精炼调温
+                    gsap.to(camera.position, {
+                        x: 0,
+                        y: 0,
+                        z: 7,
+                        duration: 1.5
+                    });
+                    break;
+                case 4: // 成型包装
+                    gsap.to(camera.position, {
+                        x: 3,
+                        y: -1,
+                        z: 5,
+                        duration: 1.5
+                    });
+                    break;
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 旋转可可豆荚
+            cocoaPods.forEach(pod => {
+                pod.rotation.y += 0.005;
+                pod.rotation.x += 0.002;
+            });
+            
+            // 旋转巧克力棒
+            chocolateBars.forEach(bar => {
+                bar.rotation.y += 0.008;
+            });
+            
+            // 旋转粒子
+            particles.forEach(particle => {
+                particle.rotation.y += 0.001;
+            });
+            
+            // 相机轻微移动
+            const time = Date.now() * 0.0005;
+            camera.position.x = camera.position.x + Math.sin(time) * 0.01;
+            camera.position.y = camera.position.y + Math.cos(time * 0.7) * 0.01;
+            
+            // 始终看向场景中心
+            camera.lookAt(0, 0, 0);
+            
+            renderer.render(scene, camera);
+        }
+        
+        // 页面加载完成后初始化场景
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
